@@ -1,0 +1,17 @@
+venv/
+env/
+ENV/
+
+*.sqlite3
+*.db
+database.sqlite3
+
+config.py
+.env
+*.env
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
