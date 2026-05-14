@@ -26,3 +26,27 @@ async def get_user_id(db: AsyncSession, tg_id: int) -> int | None:
     select_id = select(User.id).where(User.tg_id == tg_id)
     res = await db.execute(select_id)
     return res.scalar_one_or_none()
+
+async def add_income(
+        db: AsyncSession,
+        tg_id: int,
+        data: IncomeOp
+) -> Transaction:
+    
+    user_id_db = await get_user_id(db, tg_id)
+
+    if user_id_db is None:
+        raise ValueError('пользователь не найден')
+    
+    transaction = Transaction(
+        summa = data.summa,
+        operation_type = 'пополнение',
+        category = data.category,
+        user_id = data.user_id,
+        purpose = data.purpose
+    )
+    db.add(transaction)
+    await db.commit()
+    await db.refresh(transaction)
+    return transaction
+
