@@ -18,7 +18,7 @@ async def get_create_if_not_exist(db: AsyncSession, tg_id: int) -> User:
         user = User(tg_id = tg_id)
         db.add(user)
         await db.commit()
-        await db.refresh()
+        await db.refresh(user)
     
     return user
 
@@ -42,7 +42,7 @@ async def add_income(
         summa = data.summa,
         operation_type = 'пополнение',
         category = data.category,
-        user_id = data.user_id,
+        user_id = user_id_db,
         purpose = data.purpose
     )
     db.add(transaction)
@@ -50,7 +50,7 @@ async def add_income(
     await db.refresh(transaction)
     return transaction
 
-async def add_income(
+async def add_expense(
         db: AsyncSession,
         tg_id: int,
         data: ExpenseOp
@@ -65,7 +65,7 @@ async def add_income(
         summa = data.summa,
         operation_type = 'снятие',
         category = data.category,
-        user_id = data.user_id,
+        user_id = user_id_db,
         purpose = data.purpose
     )
     db.add(transaction)
@@ -73,3 +73,47 @@ async def add_income(
     await db.refresh(transaction)
     return transaction
 
+async def get_transactions(
+    db: AsyncSession,
+    tg_id: int,
+    period: str,
+    category: str | None = None
+):
+    user_id_db = await get_user_id(db, tg_id)
+
+    if user_id_db is None:
+        return [], 0.0, 0.0
+    
+    today = date.today()
+
+    if period == 'день':
+        start = today
+    elif period == 'неделя':
+        start = today - timedelta(days=7)
+    elif period == 'месяц':
+        start = date(today.year, today.month, 1)
+    elif period == 'год':
+        start = date(today.year, 1, 1)
+    else:
+        return [], 0.0, 0.0
+    
+    date_start = datetime.combine(start, datetime.min.time())
+    time_select = select(Transaction).where(
+        Transaction.user_id == user_id_db,
+        Transaction.date >= date_start
+    ).order_by(Transaction.date.desc())
+
+    if category:
+        time_select = time_select.where(Transaction.category == category)
+
+    res = await db.execute(time_select)
+    transactions = res.scalars().all()
+
+    all_incomes = sum(
+        transation.summa for transation in transactions if transation.operation_type == 'пополнение'
+    )
+    all_expenses = sum(
+        transaction.summa for transaction in transactions if transaction.operation_type == 'снятие'
+    )
+
+    return transactions, all_incomes, all_expenses
