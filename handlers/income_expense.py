@@ -12,10 +12,10 @@ from filters.check import (
     ExpenseOp,
     check_message,
     )
-
+from pydantic import ValidationError
 router = Router()
 
-@router.message(filters.Command('start'))
+@router.message(Command('start'))
 async def start(message: types.Message):
     async with sessionLocal() as bd:
         user = await get_create_if_not_exist(bd, message.from_user.id)
@@ -28,8 +28,8 @@ async def start(message: types.Message):
             "Периоды: день, неделя, месяц, год"
         )
 
-@router.message(filters.Command('add_income'))
-async def add_income_handler(message: types.Message, command: filters.command.CommandObject):
+@router.message(Command('add_income'))
+async def add_income_handler(message: types.Message, command: CommandObject):
     args = command.args
     if not args:
         await message.reply('Формат: /add_income 1000, еда, обед (категория и цель опциональны)')
@@ -41,14 +41,18 @@ async def add_income_handler(message: types.Message, command: filters.command.Co
     try:
         summa = float(dict_checking['summa'].replace(',', '.'))
     except ValueError:
-        await message.reply("Сумма должна быть числом.")
+        await message.reply("сумма должна быть числом.")
         return
-        
-    income_op = IncomeOp(
-        summa = summa,
-        category = dict_checking["category"] if dict_checking["category"] else "другое",
-        purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
-    )
+    
+    try:
+        income_op = IncomeOp(
+            summa = summa,
+            category = dict_checking["category"] if dict_checking["category"] else "другое",
+            purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
+        )
+    except ValidationError as e:
+        await message.reply(f"ошибка в данных: {e}")
+        return
 
     async with sessionLocal() as db:
         try:
