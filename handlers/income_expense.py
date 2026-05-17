@@ -1,6 +1,6 @@
 from aiogram import Router, types, filters
 from aiogram.filters import Command, CommandObject
-from models.database import get_db
+from models.database import sessionLocal
 from repo.db import (
     add_income,
     add_expense,
@@ -17,7 +17,7 @@ router = Router()
 
 @router.message(filters.Command('start'))
 async def start(message: types.Message):
-    async for bd in get_db():
+    async with sessionLocal() as bd:
         user = await get_create_if_not_exist(bd, message.from_user.id)
 
         await message.reply(
@@ -50,7 +50,7 @@ async def add_income_handler(message: types.Message, command: filters.command.Co
         purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
     )
 
-    async for db in get_db():
+    async with sessionLocal() as db:
         try:
             await add_income(db, message.from_user.id, income_op)
             await message.reply("✅ Доход добавлен")
