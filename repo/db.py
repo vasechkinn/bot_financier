@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.transaction import Transaction
+from models.database import sessionLocal, get_db, Base
 from filters.check import IncomeOp, ExpenseOp
 
 async def get_create_if_not_exist(db: AsyncSession, tg_id: int) -> User:
