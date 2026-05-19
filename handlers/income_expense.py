@@ -60,3 +60,36 @@ async def add_income_handler(message: types.Message, command: CommandObject):
             await message.reply("✅ Доход добавлен")
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
+
+@router.message(Command('add_expense'))
+async def add_expense_handler(message: types.Message, command: CommandObject):
+    args = command.args
+    if not args:
+        await message.reply('Формат: /add_expense 1000, еда, обед (категория и цель опциональны)')
+        return
+    
+    args_message = [elem.strip() for elem in args.split(',')]
+    dict_checking = check_message(args_message)
+
+    try:
+        summa = float(dict_checking['summa'].replace(',', '.'))
+    except ValueError:
+        await message.reply("сумма должна быть числом.")
+        return
+    
+    try:
+        expense_op = ExpenseOp(
+            summa = summa,
+            category = dict_checking["category"] if dict_checking["category"] else "другое",
+            purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
+        )
+    except ValidationError as e:
+        await message.reply(f"ошибка в данных: {e}")
+        return
+
+    async with sessionLocal() as db:
+        try:
+            await add_expense(db, message.from_user.id, expense_op)
+            await message.reply("✅ Расход добавлен")
+        except ValueError as e:
+            await message.reply(f"Ошибка: {e}")
