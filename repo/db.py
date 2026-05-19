@@ -157,8 +157,8 @@ async def set_goal(
     )
 
     db.add(goal)
-    db.commit()
-    db.refresh(goal)
+    await db.commit()
+    await db.refresh(goal)
     return goal
 
 async def get_active_goal(
@@ -174,3 +174,27 @@ async def get_active_goal(
     res = await db.execute(select_transactions)
 
     return res.scalars().all()
+
+async def goal_progress(
+    db: AsyncSession,
+    tg_id: int,
+):
+    goals = await get_active_goal(db, tg_id)
+    if not goals:
+        return []
+    
+    balance = await get_balance(db, tg_id)
+
+    can_close = []
+    for goal in goals:
+        if balance >= goal.summa and not goal.completion_status:
+            goal.completion_status = True
+            goal.completion_at = datetime.now()
+            can_close.append(goal)
+    
+    if can_close:
+        await db.commit()
+        for goal in can_close:
+            await db.refresh(goal)
+    
+    return can_close
