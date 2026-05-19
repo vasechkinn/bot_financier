@@ -93,3 +93,53 @@ async def add_expense_handler(message: types.Message, command: CommandObject):
             await message.reply("✅ Расход добавлен")
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
+
+@router.message(Command('view_transactions'))
+async def view_transactions(message: types.Message, command: CommandObject):
+    args = command.args
+    if not args:
+        await message.reply(
+            "Формат: /view_transactions период [категория]\n"
+            "Периоды: день, неделя, месяц, год\n"
+            "Пример: /view_transactions неделя еда"
+        )
+        return
+
+    elems = [elem.strip() for elem in args.split()]
+    period = elems[0].lower()
+    category = elems[1] if len(elems) > 1 else None
+
+    allowed_periods = ("день", "неделя", "месяц", "год")
+    if period not in allowed_periods:
+        await message.reply(f"Неверный период. Доступные: {', '.join(allowed_periods)}")
+        return
+    
+    async with sessionLocal() as db:
+        transactions, income_sum, expense_sum = await get_transactions(
+            db, message.from_user.id, period, category
+        )
+    
+    if not transactions:
+        await message.reply("за указанный период трфнзакций нет")
+        return
+    
+    lines = []
+    lines.append(f"📊 История за {period}")
+    if category:
+        lines.append(f"Категория: {category}")
+    lines.append(f"💰 Доходы: {income_sum:.2f}")
+    lines.append(f"💸 Расходы: {expense_sum:.2f}")
+    lines.append(f"📈 Баланс: {(income_sum - expense_sum):.2f}")
+    lines.append("\n📝 Последние операции:")
+
+    for t in transactions[:10]:
+        emoji = "➕" if t.operation_type.value == "пополнение" else "➖"
+        date_str = t.date.strftime("%d.%m %H:%M")
+        lines.append(
+            f"{emoji} {date_str} | {t.category} | {t.summa:.2f} | {t.purpose}"
+        )
+
+    if len(transactions) > 10:
+        lines.append(f"\n... и ещё {len(transactions) - 10} операций")
+
+    await message.reply("\n".join(lines))
