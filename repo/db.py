@@ -3,7 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.transaction import Transaction
-from models.database import sessionLocal, get_db, Base
+from models.goal import Goal
+from models.database import Base
 from filters.check import IncomeOp, ExpenseOp
 
 async def get_create_if_not_exist(db: AsyncSession, tg_id: int) -> User:
@@ -118,3 +119,44 @@ async def get_transactions(
     )
 
     return transactions, all_incomes, all_expenses
+
+async def get_balance(
+    db: AsyncSession,
+    tg_id: int
+):
+    user_id_db = await get_user_id(db, tg_id)
+
+    if user_id_db is None:
+        return 0.0
+    
+    select_transactions = select(Transaction.summa, Transaction.operation_type).where(Transaction.user_id == user_id_db)
+    res = await db.execute(select_transactions)
+
+    rows = res.all()
+    income_sum = sum(row[0] for row in rows if row[1] == 'пополнение')
+    expense_sum = sum(row[0] for row in rows if row[1] == 'снятие')
+
+    return income_sum - expense_sum
+
+async def set_goal(
+    db: AsyncSession,
+    tg_id: int,
+    description: str,
+    summa: float
+):
+    user_id_db = await get_user_id(db, tg_id)
+
+    if user_id_db is None:
+        raise ValueError('не найден пользователь')
+    
+    goal = Goal(
+        user_id=user_id_db,
+        summa = summa,
+        description=description,
+        completion_status=False
+    )
+
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+    return goal
