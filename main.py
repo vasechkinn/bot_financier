@@ -3,7 +3,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from models.database import engine, Base
 from handlers.income_expense import router
-
+from handlers.goals_handler import router_goal
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -14,6 +14,7 @@ async def main():
     bot = Bot(token="8926554564:AAHFoKZdA3kfrnWLMiNiREwe6hY1CRbFVgw")
     dp = Dispatcher()
     dp.include_router(router)
+    dp.include_router(router_goal)
 
     await dp.start_polling(bot)
 
