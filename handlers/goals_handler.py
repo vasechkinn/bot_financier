@@ -51,3 +51,27 @@ async def set_gosl_handler(message: types.Message, command: CommandObject):
             )
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
+
+@router_goal.message(Command('goals'))
+async def goals_handler(message: types.Message):
+    async with sessionLocal() as db:
+        balance = await get_balance(db, message.from_user.id)
+        goals = await get_active_goal(db, message.from_user.id)
+
+        if not goals:
+            await message.reply("У вас нет активных целей. Установите через /set_goal")
+            return
+        
+        arr = ["🎯 Ваши финансовые цели:\n"]
+        for goal in goals:
+            if goal.summa <= 0:
+                progress = 100
+            else:
+                progress = min(100, (balance / goal.summa) * 100)
+            
+            status = "✅ Достигнута!" if balance >= goal.summa else f"📈 Прогресс: {progress:.1f}%"
+
+            arr.append(f"- {goal.description}")
+            arr.append(f"  Цель: {goal.summa:.2f} | Баланс: {balance:.2f} | {status}\n")
+
+        await message.reply("\n".join(arr))
