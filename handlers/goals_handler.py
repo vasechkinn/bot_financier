@@ -53,7 +53,7 @@ async def set_gosl_handler(message: types.Message, command: CommandObject):
             await message.reply(f"Ошибка: {e}")
 
 @router_goal.message(Command('goals'))
-async def goals_handler(message: types.Message):
+async def get_goals_handler(message: types.Message):
     async with sessionLocal() as db:
         balance = await get_balance(db, message.from_user.id)
         goals = await get_active_goal(db, message.from_user.id)
@@ -67,7 +67,7 @@ async def goals_handler(message: types.Message):
             if goal.summa <= 0:
                 progress = 100
             else:
-                progress = min(100, (balance / goal.summa) * 100)
+                progress = max(0, min(100, (balance / goal.summa) * 100))
             
             status = "✅ Достигнута!" if balance >= goal.summa else f"📈 Прогресс: {progress:.1f}%"
 
