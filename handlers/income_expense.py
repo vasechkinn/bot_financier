@@ -6,6 +6,8 @@ from repo.db import (
     add_expense,
     get_transactions,
     get_create_if_not_exist,
+    goal_progress,
+    get_balance
     )
 from filters.check import (
     IncomeOp,
@@ -58,6 +60,16 @@ async def add_income_handler(message: types.Message, command: CommandObject):
         try:
             await add_income(db, message.from_user.id, income_op)
             await message.reply("✅ Доход добавлен")
+
+            can_close = await goal_progress(db, message.from_user.id)
+            for goal in can_close:
+                balance = await get_balance(db, message.from_user.id)
+
+                await message.reply(
+                f"🎉 Поздравляем! Вы достигли цели «{goal.description}»!\n"
+                f"Цель: {goal.summa:.2f} | Текущий баланс: {balance:.2f}"
+            )
+
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
 
