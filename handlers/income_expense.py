@@ -48,10 +48,16 @@ async def add_income_handler(message: types.Message, command: CommandObject):
         await message.reply("сумма должна быть числом.")
         return
     
+    ALLOWED_INCOME = ("еда", "развлечения", "отдых", "зарплата", "другое")
+
+    category_ = dict_checking["category"] if dict_checking["category"] else ""
+    if category_ not in ALLOWED_INCOME:
+        category_ = "другое"
+    
     try:
         income_op = IncomeOp(
             summa = summa,
-            category = dict_checking["category"] if dict_checking["category"] else "другое",
+            category = category_,
             purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
         )
     except ValidationError as e:
@@ -61,7 +67,8 @@ async def add_income_handler(message: types.Message, command: CommandObject):
     async with sessionLocal() as db:
         try:
             await add_income(db, message.from_user.id, income_op)
-            await message.reply("✅ Доход добавлен")
+            balance = await get_balance(db, message.from_user.id)
+            await message.reply(f"✅ Доход добавлен. Текущий баланс: {balance:.2f}")
 
             can_close = await goal_progress(db, message.from_user.id)
             for goal in can_close:
@@ -91,10 +98,16 @@ async def add_expense_handler(message: types.Message, command: CommandObject):
         await message.reply("сумма должна быть числом.")
         return
     
+    ALLOWED_EXPENSE = ("еда", "развлечения", "отдых", "подарок", "другое")
+
+    category_ = dict_checking["category"] if dict_checking["category"] else ""
+    if category_ not in ALLOWED_EXPENSE:
+        category_ = "другое"
+    
     try:
         expense_op = ExpenseOp(
             summa = summa,
-            category = dict_checking["category"] if dict_checking["category"] else "другое",
+            category = category_,
             purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
         )
     except ValidationError as e:
@@ -104,7 +117,8 @@ async def add_expense_handler(message: types.Message, command: CommandObject):
     async with sessionLocal() as db:
         try:
             await add_expense(db, message.from_user.id, expense_op)
-            await message.reply("✅ Расход добавлен")
+            balance = await get_balance(db, message.from_user.id)
+            await message.reply(f"✅ Рфсход добавлен. Текущий баланс: {balance:.2f}")
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
 
