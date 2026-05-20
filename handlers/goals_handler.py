@@ -5,14 +5,7 @@ from repo.db import (
     get_balance,
     set_goal,
     get_active_goal,
-    goal_progress
     )
-from filters.check import (
-    IncomeOp,
-    ExpenseOp,
-    check_message,
-    )
-from pydantic import ValidationError
 
 router_goal = Router()
 
