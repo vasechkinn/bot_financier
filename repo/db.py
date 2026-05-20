@@ -168,7 +168,7 @@ async def get_active_goal(
     user_id_db = await get_user_id(db, tg_id)
 
     if user_id_db is None:
-        raise ValueError('не найден пользователь')
+        return []
     
     select_transactions = select(Goal).where(Goal.user_id == user_id_db, Goal.completion_status == False)
     res = await db.execute(select_transactions)
