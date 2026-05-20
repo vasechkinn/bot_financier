@@ -2,10 +2,11 @@ from datetime import datetime,  timedelta, date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
-from models.transaction import Transaction
+from models.transaction import Transaction, OperationType
 from models.goal import Goal
 from models.database import Base
 from filters.check import IncomeOp, ExpenseOp
+from sqlalchemy.exc import IntegrityError
 
 async def get_create_if_not_exist(db: AsyncSession, tg_id: int) -> User:
     """
@@ -19,8 +20,13 @@ async def get_create_if_not_exist(db: AsyncSession, tg_id: int) -> User:
     if user is None:
         user = User(tg_id = tg_id)
         db.add(user)
-        await db.commit()
-        await db.refresh(user)
+
+        try:
+            await db.commit()
+            await db.refresh(user)
+        except IntegrityError:
+            res2 =  await db.execute(select(User).where(User.tg_id == tg_id))
+            user = res2.scalar_one()
     
     return user
 
@@ -42,7 +48,7 @@ async def add_income(
     
     transaction = Transaction(
         summa = data.summa,
-        operation_type = 'пополнение',
+        operation_type = OperationType.INCOME,
         category = data.category,
         user_id = user_id_db,
         purpose = data.purpose
@@ -65,7 +71,7 @@ async def add_expense(
     
     transaction = Transaction(
         summa = data.summa,
-        operation_type = 'снятие',
+        operation_type = OperationType.EXPENSE,
         category = data.category,
         user_id = user_id_db,
         purpose = data.purpose
@@ -112,10 +118,10 @@ async def get_transactions(
     transactions = res.scalars().all()
 
     all_incomes = sum(
-        transaction.summa for transaction in transactions if transaction.operation_type == 'пополнение'
+        transaction.summa for transaction in transactions if transaction.operation_type == OperationType.INCOME
     )
     all_expenses = sum(
-        transaction.summa for transaction in transactions if transaction.operation_type == 'снятие'
+        transaction.summa for transaction in transactions if transaction.operation_type == OperationType.EXPENSE
     )
 
     return transactions, all_incomes, all_expenses
@@ -129,12 +135,13 @@ async def get_balance(
     if user_id_db is None:
         return 0.0
     
-    select_transactions = select(Transaction.summa, Transaction.operation_type).where(Transaction.user_id == user_id_db)
-    res = await db.execute(select_transactions)
+    result = await db.execute(
+        select(Transaction).where(Transaction.user_id == user_id_db)
+    )
 
-    rows = res.all()
-    income_sum = sum(row[0] for row in rows if row[1] == 'пополнение')
-    expense_sum = sum(row[0] for row in rows if row[1] == 'снятие')
+    transactions = result.scalars().all()
+    income_sum = sum(t.summa for t in transactions if t.operation_type == OperationType.INCOME)
+    expense_sum = sum(t.summa for t in transactions if t.operation_type == OperationType.EXPENSE)
 
     return income_sum - expense_sum
 
