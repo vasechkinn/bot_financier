@@ -27,7 +27,9 @@ async def start(message: types.Message):
             "➕ Доход: /add_income сумма, категория, цель\n"
             "➖ Расход: /add_expense сумма, категория, цель\n"
             "📊 История: /view_transactions период [категория]\n"
-            "Периоды: день, неделя, месяц, год"
+            "Периоды: день, неделя, месяц, год\n"
+            "🎯 Цели: /set_goal сумма описание\n"
+            "📈 Прогресс: /goals\n"
         )
 
 @router.message(Command('add_income'))
