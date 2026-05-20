@@ -112,7 +112,7 @@ async def get_transactions(
     transactions = res.scalars().all()
 
     all_incomes = sum(
-        transation.summa for transation in transactions if transation.operation_type == 'пополнение'
+        transaction.summa for transaction in transactions if transaction.operation_type == 'пополнение'
     )
     all_expenses = sum(
         transaction.summa for transaction in transactions if transaction.operation_type == 'снятие'
