@@ -211,3 +211,10 @@ async def get_user_tg_id(db: AsyncSession, tg_id: int) -> User | None:
     res = await db.execute(select_user)
 
     return res.scalar_one_or_none()
+
+async def is_register(db: AsyncSession, tg_id: int):
+    user = await get_user_tg_id(db, tg_id)
+    if user is None:
+        return False
+    
+    return user.login is not None and user.login != ""
