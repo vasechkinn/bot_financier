@@ -37,7 +37,7 @@ async def start(message: types.Message):
                 "📈 Прогресс: /goals"
             )
             return
-        
+
         await message.reply(
             f"С возвращением, {user.login}!\n"
             "➕ Доход: /add_income сумма, категория, цель\n"

@@ -23,7 +23,7 @@ async def reg_router(message: types.Message, state: FSMContext):
     await message.answer("Придумайте логин:")
 
 
-@router_register.message(RegisterStates.waiting_for_login, F.text)
+@router_register.message(RegisterStates.waiting_login, F.text)
 async def register_login(message: types.Message, state: FSMContext):
     login = message.text.strip()
     if len(login) < 3:
@@ -37,7 +37,7 @@ async def register_login(message: types.Message, state: FSMContext):
     await message.answer("Теперь введите пароль:")
 
 
-@router_register.message(RegisterStates.waiting_for_login, F.text)
+@router_register.message(RegisterStates.waiting_pass, F.text)
 async def register_password(message: types.Message, state: FSMContext):
     password = message.text.strip()
 
