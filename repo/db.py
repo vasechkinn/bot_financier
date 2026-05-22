@@ -1,5 +1,5 @@
 from datetime import datetime,  timedelta, date
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.transaction import Transaction, OperationType
@@ -205,3 +205,9 @@ async def goal_progress(
             await db.refresh(goal)
     
     return can_close
+
+async def get_user_tg_id(db: AsyncSession, tg_id: int) -> User | None:
+    select_user = select(User).where(User.id == tg_id)
+    res = await db.execute(select_user)
+
+    return res.scalar_one_or_none()
