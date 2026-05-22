@@ -24,14 +24,28 @@ async def start(message: types.Message):
     async with sessionLocal() as bd:
         user = await get_create_if_not_exist(bd, message.from_user.id)
 
+        if not user.login:
+            await message.reply(
+                f"Привет, {message.from_user.full_name}!\n\n"
+                "Для использования бота необходимо зарегистрироваться.\n"
+                "Используйте команду /register, чтобы создать логин и пароль.\n\n"
+                "После регистрации вам станут доступны:\n"
+                "➕ Доход: /add_income сумма, категория, цель\n"
+                "➖ Расход: /add_expense сумма, категория, цель\n"
+                "📊 История: /view_transactions период [категория]\n"
+                "🎯 Цели: /set_goal сумма описание\n"
+                "📈 Прогресс: /goals"
+            )
+            return
+        
         await message.reply(
-            f"привет, {message.from_user.full_name}!\n"
+            f"С возвращением, {user.login}!\n"
             "➕ Доход: /add_income сумма, категория, цель\n"
             "➖ Расход: /add_expense сумма, категория, цель\n"
             "📊 История: /view_transactions период [категория]\n"
             "Периоды: день, неделя, месяц, год\n"
             "🎯 Цели: /set_goal сумма описание\n"
-            "📈 Прогресс: /goals\n"
+            "📈 Прогресс: /goals"
         )
 
 
