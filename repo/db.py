@@ -218,3 +218,17 @@ async def is_register(db: AsyncSession, tg_id: int):
         return False
     
     return user.login is not None and user.login != ""
+
+async def set_log_pass(
+        db: AsyncSession,
+        tg_id: int,
+        login: str,
+        password: str
+):
+    user = await get_create_if_not_exist(db, tg_id)
+    user.login = login
+    user.password = password
+    
+    await db.commit()
+    await db.refresh(user)
+    return user
