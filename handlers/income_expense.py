@@ -7,17 +7,19 @@ from repo.db import (
     get_transactions,
     get_create_if_not_exist,
     goal_progress,
-    get_balance
-    )
+    get_balance,
+)
 from filters.check import (
     IncomeOp,
     ExpenseOp,
     check_message,
-    )
+)
 from pydantic import ValidationError
+
 router = Router()
 
-@router.message(Command('start'))
+
+@router.message(Command("start"))
 async def start(message: types.Message):
     async with sessionLocal() as bd:
         user = await get_create_if_not_exist(bd, message.from_user.id)
@@ -32,33 +34,38 @@ async def start(message: types.Message):
             "📈 Прогресс: /goals\n"
         )
 
-@router.message(Command('add_income'))
+
+@router.message(Command("add_income"))
 async def add_income_handler(message: types.Message, command: CommandObject):
     args = command.args
     if not args:
-        await message.reply('Формат: /add_income 1000, еда, обед (категория и цель опциональны)')
+        await message.reply(
+            "Формат: /add_income 1000, еда, обед (категория и цель опциональны)"
+        )
         return
-    
-    args_message = [elem.strip() for elem in args.split(',')]
+
+    args_message = [elem.strip() for elem in args.split(",")]
     dict_checking = check_message(args_message)
 
     try:
-        summa = float(dict_checking['summa'].replace(',', '.'))
+        summa = float(dict_checking["summa"].replace(",", "."))
     except ValueError:
         await message.reply("сумма должна быть числом.")
         return
-    
+
     ALLOWED_INCOME = ("еда", "развлечения", "отдых", "зарплата", "другое")
 
     category_ = dict_checking["category"] if dict_checking["category"] else ""
     if category_ not in ALLOWED_INCOME:
         category_ = "другое"
-    
+
     try:
         income_op = IncomeOp(
-            summa = summa,
-            category = category_,
-            purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
+            summa=summa,
+            category=category_,
+            purpose=dict_checking["purpose"]
+            if dict_checking["purpose"]
+            else "на мечту",
         )
     except ValidationError as e:
         await message.reply(f"ошибка в данных: {e}")
@@ -75,40 +82,45 @@ async def add_income_handler(message: types.Message, command: CommandObject):
                 balance = await get_balance(db, message.from_user.id)
 
                 await message.reply(
-                f"🎉 Поздравляем! Вы достигли цели «{goal.description}»!\n"
-                f"Цель: {goal.summa:.2f} | Текущий баланс: {balance:.2f}"
-            )
+                    f"🎉 Поздравляем! Вы достигли цели «{goal.description}»!\n"
+                    f"Цель: {goal.summa:.2f} | Текущий баланс: {balance:.2f}"
+                )
 
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
 
-@router.message(Command('add_expense'))
+
+@router.message(Command("add_expense"))
 async def add_expense_handler(message: types.Message, command: CommandObject):
     args = command.args
     if not args:
-        await message.reply('Формат: /add_expense 1000, еда, обед (категория и цель опциональны)')
+        await message.reply(
+            "Формат: /add_expense 1000, еда, обед (категория и цель опциональны)"
+        )
         return
-    
-    args_message = [elem.strip() for elem in args.split(',')]
+
+    args_message = [elem.strip() for elem in args.split(",")]
     dict_checking = check_message(args_message)
 
     try:
-        summa = float(dict_checking['summa'].replace(',', '.'))
+        summa = float(dict_checking["summa"].replace(",", "."))
     except ValueError:
         await message.reply("сумма должна быть числом.")
         return
-    
+
     ALLOWED_EXPENSE = ("еда", "развлечения", "отдых", "подарок", "другое")
 
     category_ = dict_checking["category"] if dict_checking["category"] else ""
     if category_ not in ALLOWED_EXPENSE:
         category_ = "другое"
-    
+
     try:
         expense_op = ExpenseOp(
-            summa = summa,
-            category = category_,
-            purpose = dict_checking["purpose"] if dict_checking["purpose"] else "на мечту"
+            summa=summa,
+            category=category_,
+            purpose=dict_checking["purpose"]
+            if dict_checking["purpose"]
+            else "на мечту",
         )
     except ValidationError as e:
         await message.reply(f"ошибка в данных: {e}")
@@ -122,7 +134,8 @@ async def add_expense_handler(message: types.Message, command: CommandObject):
         except ValueError as e:
             await message.reply(f"Ошибка: {e}")
 
-@router.message(Command('view_transactions'))
+
+@router.message(Command("view_transactions"))
 async def view_transactions(message: types.Message, command: CommandObject):
     args = command.args
     if not args:
@@ -141,16 +154,16 @@ async def view_transactions(message: types.Message, command: CommandObject):
     if period not in allowed_periods:
         await message.reply(f"Неверный период. Доступные: {', '.join(allowed_periods)}")
         return
-    
+
     async with sessionLocal() as db:
         transactions, income_sum, expense_sum = await get_transactions(
             db, message.from_user.id, period, category
         )
-    
+
     if not transactions:
         await message.reply("за указанный период трфнзакций нет")
         return
-    
+
     lines = []
     lines.append(f"📊 История за {period}")
     if category:
@@ -163,9 +176,7 @@ async def view_transactions(message: types.Message, command: CommandObject):
     for t in transactions[:10]:
         emoji = "➕" if t.operation_type.value == "пополнение" else "➖"
         date_str = t.date.strftime("%d.%m %H:%M")
-        lines.append(
-            f"{emoji} {date_str} | {t.category} | {t.summa:.2f} | {t.purpose}"
-        )
+        lines.append(f"{emoji} {date_str} | {t.category} | {t.summa:.2f} | {t.purpose}")
 
     if len(transactions) > 10:
         lines.append(f"\n... и ещё {len(transactions) - 10} операций")
